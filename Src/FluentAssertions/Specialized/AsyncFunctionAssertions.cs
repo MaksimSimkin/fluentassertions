@@ -64,6 +64,31 @@ namespace FluentAssertions.Specialized
             return new AndConstraint<TAssertions>((TAssertions)this);
         }
 
+        public AndConstraint<TAssertions> CompleteWithin(
+            TimeSpan timeSpanFrom, TimeSpan timeSpanTo, string because = "", params object[] becauseArgs)
+        {
+            Execute.Assertion
+                .ForCondition(Subject is object)
+                .BecauseOf(because, becauseArgs)
+                .FailWith("Expected {context:task} to complete within {0} and {1} {reason}, but found <null>.", timeSpanFrom, timeSpanTo);
+
+            TTask task = Subject.ExecuteInDefaultSynchronizationContext();
+            ITimer timer = Clock.StartTimer();
+            bool completed = Clock.Wait(task, timeSpanTo);
+            var timeElapsed = timer.Elapsed;
+
+            Execute.Assertion
+                .ForCondition(completed)
+                .BecauseOf(because, becauseArgs)
+                .FailWith("Expected {context:task} to complete within {0}{reason}", timeSpanTo)
+                .Then
+                .ForCondition(timeElapsed >= timeSpanFrom)
+                .BecauseOf(because, becauseArgs)
+                .FailWith("Expected {context:task} to complete after {0}{reason}, but it was {1}", timeSpanFrom, timeElapsed);
+
+            return new AndConstraint<TAssertions>((TAssertions)this);
+        }
+
         /// <summary>
         /// Asserts that the current <typeparamref name="TTask"/> will complete within the specified time.
         /// </summary>

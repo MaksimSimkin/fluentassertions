@@ -39,6 +39,57 @@ namespace FluentAssertions.Specs
         }
 
         [Fact]
+        public void When_task_completes_too_fast_it_should_fail()
+        {
+            // Arrange
+            var timer = new FakeClock();
+            var taskFactory = new TaskCompletionSource<bool>();
+            timer.Delay(TimeSpan.FromMilliseconds(20));
+
+            // Act
+            Action action = () => taskFactory.Awaiting(t => (Task)t.Task).Should(timer).CompleteWithin(50.Milliseconds(), 100.Milliseconds());
+            taskFactory.SetResult(true);
+            timer.CompletesBeforeTimeout();
+
+            // Assert
+            action.Should().Throw<XunitException>();
+        }
+
+        [Fact]
+        public void When_task_completes_too_slow_it_should_fail()
+        {
+            // Arrange
+            var timer = new FakeClock();
+            var taskFactory = new TaskCompletionSource<bool>();
+            timer.Delay(TimeSpan.FromMilliseconds(200));
+
+            // Act
+            Action action = () => taskFactory.Awaiting(t => (Task)t.Task).Should(timer).CompleteWithin(50.Milliseconds(), 100.Milliseconds());
+            taskFactory.SetResult(true);
+            timer.RunsIntoTimeout();
+
+            // Assert
+            action.Should().Throw<XunitException>();
+        }
+
+        [Fact]
+        public void When_task_completes_between_timeSpanFrom_and_timeSpanTo_it_should_success()
+        {
+            // Arrange
+            var timer = new FakeClock();
+            var taskFactory = new TaskCompletionSource<bool>();
+            timer.Delay(TimeSpan.FromMilliseconds(80));
+
+            // Act
+            Action action = () => taskFactory.Awaiting(t => (Task)t.Task).Should(timer).CompleteWithin(50.Milliseconds(), 100.Milliseconds());
+            taskFactory.SetResult(true);
+            timer.CompletesBeforeTimeout();
+
+            // Assert
+            action.Should().NotThrow();
+        }
+
+        [Fact]
         public void When_task_completes_fast_it_should_succeed()
         {
             // Arrange
