@@ -64,6 +64,18 @@ namespace FluentAssertions.Specialized
             return new AndConstraint<TAssertions>((TAssertions)this);
         }
 
+        /// <summary>
+        /// Asserts that the current <typeparamref name="TTask"/> will complete within specified time range.
+        /// </summary>
+        /// <param name="timeSpanFrom">The allowed minimal time span for the operation.</param>
+        /// <param name="timeSpanTo">The allowed maximal time span for the operation.</param>
+        /// <param name="because">
+        /// A formatted phrase as is supported by <see cref="string.Format(string,object[])" /> explaining why the assertion
+        /// is needed. If the phrase does not start with the word <i>because</i>, it is prepended automatically.
+        /// </param>
+        /// <param name="becauseArgs">
+        /// Zero or more objects to format using the placeholders in <paramref name="because" />.
+        /// </param>
         public AndConstraint<TAssertions> CompleteWithin(
             TimeSpan timeSpanFrom, TimeSpan timeSpanTo, string because = "", params object[] becauseArgs)
         {
