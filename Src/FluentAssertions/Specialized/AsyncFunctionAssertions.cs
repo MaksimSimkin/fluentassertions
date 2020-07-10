@@ -141,6 +141,52 @@ namespace FluentAssertions.Specialized
         }
 
         /// <summary>
+        /// Asserts that the current <typeparamref name="TTask"/> will complete within the specified time.
+        /// </summary>
+        /// <param name="timeSpanFrom">The allowed minimal time span for the operation.</param>
+        /// <param name="timeSpanTo">The allowed maximal time span for the operation.</param>
+        /// <param name="because">
+        /// A formatted phrase as is supported by <see cref="string.Format(string,object[])" /> explaining why the assertion
+        /// is needed. If the phrase does not start with the word <i>because</i>, it is prepended automatically.
+        /// </param>
+        /// <param name="becauseArgs">
+        /// Zero or more objects to format using the placeholders in <paramref name="because" />.
+        /// </param>
+        public async Task<AndConstraint<TAssertions>> CompleteWithinAsync(
+            TimeSpan timeSpanFrom, TimeSpan timeSpanTo, string because = "", params object[] becauseArgs)
+        {
+            Execute.Assertion
+                .ForCondition(Subject is object)
+                .BecauseOf(because, becauseArgs)
+                .FailWith("Expected {context:task} to complete within {0} and {1} {reason}, but found <null>.", timeSpanFrom, timeSpanTo);
+
+            using var timeoutCancellationTokenSource = new CancellationTokenSource();
+            var timer = Clock.StartTimer();
+            TTask task = Subject.ExecuteInDefaultSynchronizationContext();
+
+            Task completedTask =
+                await Task.WhenAny(task, Clock.DelayAsync(timeSpanTo, timeoutCancellationTokenSource.Token));
+            var timeElapsed = timer.Elapsed;
+
+            if (completedTask == task)
+            {
+                timeoutCancellationTokenSource.Cancel();
+                await completedTask;
+            }
+
+            Execute.Assertion
+                .ForCondition(completedTask == task)
+                .BecauseOf(because, becauseArgs)
+                .FailWith("Expected {context:task} to complete within {0}{reason}", timeSpanTo)
+                .Then
+                .ForCondition(timeElapsed >= timeSpanFrom)
+                .BecauseOf(because, becauseArgs)
+                .FailWith("Expected {context:task} to complete after {0}{reason}, but it was {1}", timeSpanFrom, timeElapsed);
+
+            return new AndConstraint<TAssertions>((TAssertions)this);
+        }
+
+        /// <summary>
         /// Asserts that the current <see cref="Func{Task}"/> throws an exception of the exact type <typeparamref name="TException"/> (and not a derived exception type).
         /// </summary>
         /// <typeparam name="TException">
